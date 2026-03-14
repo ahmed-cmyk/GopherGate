@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -11,21 +12,16 @@ import (
 func main() {
 	var config config.Config
 
-	data, err := config.CheckConfig("config.yaml")
+	err := config.LoadData("config.yaml")
 	if err != nil {
-		fmt.Printf("Error reading config: %v\n", err)
+		log.Fatalf("Error unmarshaling YAML: %v\n", err)
 		os.Exit(1)
 	}
 
-	err = config.LoadData(data)
-	if err != nil {
-		fmt.Printf("Error unmarshaling YAML: %v\n", err)
-		os.Exit(1)
-	}
+	fmt.Printf("Starting service: %s\n", config.ServiceName)
+	fmt.Printf("Listening on port %s\n", config.Server.Port)
 
 	port := fmt.Sprintf(":%s", config.Server.Port)
-
-	fmt.Printf("Running on port %s\n", config.Server.Port)
 
 	err = http.ListenAndServe(port, nil)
 	if err != nil {
