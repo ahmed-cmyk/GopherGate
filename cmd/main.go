@@ -1,16 +1,41 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net/http"
+	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, World!"))
-	})
+type Config struct {
+	ServiceName string `yaml:"service_name"`
+	Server      struct {
+		Host string `yaml:"host"`
+		Port string `yaml:"port"`
+	} `yaml:"server"`
+}
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal("Failed to start server")
+func main() {
+	data, err := os.ReadFile("config.yaml")
+	if err != nil {
+		fmt.Printf("Error reading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		fmt.Printf("Error unmarshaling YAML: %v\n", err)
+		os.Exit(1)
+	}
+
+	port := fmt.Sprintf(":%s", config.Server.Port)
+
+	fmt.Printf("Running on %s port %s\n", config.Server.Host, config.Server.Port)
+
+	err = http.ListenAndServe(port, nil)
+	if err != nil {
+		fmt.Printf("Failed to start server: %v\n", err)
 	}
 }
