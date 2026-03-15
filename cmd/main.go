@@ -59,7 +59,7 @@ func main() {
 
 func setupGateway(cfg *config.Config) *proxy.Gateway {
 	// Initialize the stateful logic
-	limiterManager := middleware.NewLimiter(rate.Every(time.Minute), 5)
+	limiterManager := middleware.NewLimiter(rate.Every(time.Minute), 50)
 
 	// Prime the middleware with its manager
 	rateLimitMW := middleware.RateLimit(&limiterManager)
