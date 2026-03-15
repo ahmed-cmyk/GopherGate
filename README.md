@@ -28,7 +28,7 @@ I am building this incrementally. Here is the current status of the gateway:
 ### Phase 2: Traffic Control
 
 * [ ] **Load Balancing:** Round-robin distribution across multiple service instances.
-* [ ] **Rate Limiting:** Protect backends using the Token Bucket algorithm.
+* [x] **Rate Limiting:** Protect backends using the Token Bucket algorithm.
 * [ ] **Health Checks:** Automatically removing unhealthy backends from the pool.
 
 ### Phase 3: Security & Ops
