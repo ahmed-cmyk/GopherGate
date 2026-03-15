@@ -6,6 +6,7 @@ server:
 routes:
   - path: /api/users
     target: "http://user-service:8001"
+    methods: ["GET", "POST"]
     strip-prefix: true
     middlewares:
       - rate_limit

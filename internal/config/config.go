@@ -19,6 +19,7 @@ type Route struct {
 	Path        string   `yaml:"path"`
 	Target      string   `yaml:"target"`
 	StripPrefix bool     `yaml:"strip-prefix"`
+	Methods     []string `yaml:"methods"`
 	Middlewares []string `yaml:"middlewares"`
 }
 

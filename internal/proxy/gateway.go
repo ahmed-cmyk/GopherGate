@@ -5,19 +5,25 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/ahmed-cmyk/GopherGate/internal/config"
 	"github.com/ahmed-cmyk/GopherGate/internal/middleware"
 )
 
+type routeEntry struct {
+	handler http.Handler
+	methods []string
+}
+
 type Gateway struct {
-	handlers map[string]http.Handler
+	routes map[string]routeEntry
 }
 
 func New(cfg *config.Config) *Gateway {
 	gw := &Gateway{
-		handlers: make(map[string]http.Handler),
+		routes: make(map[string]routeEntry),
 	}
 
 	for _, route := range cfg.Routes {
@@ -47,28 +53,37 @@ func New(cfg *config.Config) *Gateway {
 
 		finalHandler := applyMiddlewares(proxy, route.Middlewares)
 
-		gw.handlers[route.Path] = finalHandler
+		gw.routes[route.Path] = routeEntry{
+			handler: finalHandler,
+			methods: route.Methods,
+		}
 	}
 	return gw
 }
 
 func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	incomingPath := r.URL.Path
-	var matchedHandler http.Handler
+	var found bool
+	var matched routeEntry
 
-	for path, proxy := range gw.handlers {
-		if strings.HasPrefix(incomingPath, path) {
-			matchedHandler = proxy
+	for path, entry := range gw.routes {
+		if strings.HasPrefix(r.URL.Path, path) {
+			matched = entry
+			found = true
 			break
 		}
 	}
 
-	if matchedHandler == nil {
+	if !found {
 		http.Error(w, "Not Found", 404)
 		return
 	}
 
-	matchedHandler.ServeHTTP(w, r)
+	if len(matched.methods) > 0 && !slices.Contains(matched.methods, r.Method) {
+		http.Error(w, "Method Not Supported", 405)
+		return
+	}
+
+	matched.handler.ServeHTTP(w, r)
 }
 
 func applyMiddlewares(target http.Handler, names []string) http.Handler {
