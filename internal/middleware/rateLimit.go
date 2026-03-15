@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net"
+	"log"
 	"net/http"
 	"sync"
 
@@ -36,20 +36,18 @@ func (l *IPRateLimiter) fetchLimiter(ip string) *rate.Limiter {
 	return limiter
 }
 
-func getIP(r *http.Request) (string, error) {
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return "", err
-	}
-	return ip, nil
+func getIP(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	return ip
 }
 
 func RateLimit(manager *IPRateLimiter) MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, err := getIP(r)
-			if err != nil {
-				http.Error(w, "Identity Unknown", http.StatusInternalServerError)
+			// Get IP address of user making request
+			ip := getIP(r)
+			if ip == "" {
+				log.Println("Could not retrieve IP address from header")
 				return
 			}
 
