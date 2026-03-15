@@ -28,6 +28,6 @@ func Logging(next http.Handler) http.Handler {
 
 		elapsed := time.Since(start)
 
-		log.Printf("[%d] %s %s (Took %s)", rw.statusCode, r.Method, r.URL.Path, elapsed)
+		log.Printf("[%d] %s %s (Took %d ms)", rw.statusCode, r.Method, r.URL.Path, elapsed.Milliseconds())
 	})
 }
