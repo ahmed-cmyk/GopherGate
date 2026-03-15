@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/ahmed-cmyk/GopherGate/internal/config"
+	"github.com/ahmed-cmyk/GopherGate/internal/middleware"
 	"github.com/ahmed-cmyk/GopherGate/internal/proxy"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -27,8 +29,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup Gateway
-	gateway := proxy.New(&cfg)
+	// Setup Gateway Instance
+	gateway := setupGateway(&cfg)
 
 	port := fmt.Sprintf(":%s", cfg.Server.Port)
 	srv := &http.Server{
@@ -54,4 +56,17 @@ func main() {
 
 	log.Println("Shutting down server gracefully...")
 	log.Println("Server gracefully stopped")
+}
+
+func setupGateway(cfg *config.Config) *proxy.Gateway {
+	// Initialize the stateful logic
+	limiterManager := middleware.NewLimiter(rate.Every(time.Minute), 5)
+
+	// Prime the middleware with its manager
+	rateLimitMW := middleware.RateLimit(&limiterManager)
+
+	// Register it dynamically
+	middleware.Registry["rate_limit"] = rateLimitMW
+
+	return proxy.New(cfg)
 }

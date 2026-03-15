@@ -1,10 +1,40 @@
 package middleware
 
 import (
-	"log"
 	"net"
 	"net/http"
+	"sync"
+
+	"golang.org/x/time/rate"
 )
+
+type IPRateLimiter struct {
+	ips map[string]*rate.Limiter
+	mu  sync.RWMutex
+	r   rate.Limit
+	b   int
+}
+
+func NewLimiter(limit rate.Limit, bucket int) IPRateLimiter {
+	return IPRateLimiter{
+		ips: make(map[string]*rate.Limiter),
+		r:   limit,
+		b:   bucket,
+	}
+}
+
+func (l *IPRateLimiter) fetchLimiter(ip string) *rate.Limiter {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	limiter, ok := l.ips[ip]
+	if !ok {
+		l.ips[ip] = rate.NewLimiter(l.r, l.b)
+		return l.ips[ip]
+	}
+
+	return limiter
+}
 
 func getIP(r *http.Request) (string, error) {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -14,15 +44,24 @@ func getIP(r *http.Request) (string, error) {
 	return ip, nil
 }
 
-func RateLimit(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, err := getIP(r)
-		if err != nil {
-			log.Fatalf("Unable to get IP address: %v\n", err)
-		}
+func RateLimit(manager *IPRateLimiter) MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip, err := getIP(r)
+			if err != nil {
+				http.Error(w, "Identity Unknown", http.StatusInternalServerError)
+				return
+			}
 
-		log.Printf("Found IP Address: %s\n", ip)
+			// Now 'manager' is accessible here!
+			limiter := manager.fetchLimiter(ip)
 
-		next.ServeHTTP(w, r)
-	})
+			if !limiter.Allow() {
+				http.Error(w, "Slow down, Gopher.", http.StatusTooManyRequests)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

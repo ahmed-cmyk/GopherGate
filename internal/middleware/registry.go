@@ -7,6 +7,5 @@ import (
 type MiddlewareFunc func(http.Handler) http.Handler
 
 var Registry = map[string]MiddlewareFunc{
-	"logging":    Logging,
-	"rate_limit": RateLimit,
+	"logging": Logging,
 }
