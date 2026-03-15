@@ -15,12 +15,18 @@ type Config struct {
 	Routes []Route `yaml:"routes"`
 }
 
+type HeaderConfig struct {
+	Set    map[string]string `yaml:"set"`
+	Remove []string          `yaml:"remove"`
+}
+
 type Route struct {
-	Path        string   `yaml:"path"`
-	Target      string   `yaml:"target"`
-	StripPrefix bool     `yaml:"strip-prefix"`
-	Methods     []string `yaml:"methods"`
-	Middlewares []string `yaml:"middlewares"`
+	Path        string       `yaml:"path"`
+	Target      string       `yaml:"target"`
+	StripPrefix bool         `yaml:"strip-prefix"`
+	Methods     []string     `yaml:"methods"`
+	Headers     HeaderConfig `yaml:"headers"`
+	Middlewares []string     `yaml:"middlewares"`
 }
 
 func (c *Config) LoadData(path string) error {

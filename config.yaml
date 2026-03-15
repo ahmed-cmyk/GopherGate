@@ -7,6 +7,14 @@ routes:
   - path: /api/users
     target: "http://user-service:8001"
     methods: ["GET", "POST"]
+    headers:
+      set:
+        X-Gateway-Auth: "authenticated"
+        X-Custom-ID: "gopher-123"
+      remove:
+        - X-Internal-Secret
+        - X-Forwarded-For
+        - Cookie
     strip-prefix: true
     middlewares:
       - rate_limit
