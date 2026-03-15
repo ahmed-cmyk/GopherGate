@@ -45,7 +45,7 @@ func New(cfg *config.Config) *Gateway {
 			}
 		}
 
-		finalHandler := ApplyMiddlewares(proxy, route.Middlewares)
+		finalHandler := applyMiddlewares(proxy, route.Middlewares)
 
 		gw.handlers[route.Path] = finalHandler
 	}
@@ -71,7 +71,7 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	matchedHandler.ServeHTTP(w, r)
 }
 
-func ApplyMiddlewares(target http.Handler, names []string) http.Handler {
+func applyMiddlewares(target http.Handler, names []string) http.Handler {
 	current := target
 
 	// Wrap from right to left so the first item in the YAML is the outermost layer
