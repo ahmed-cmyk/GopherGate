@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"errors"
 	"sync/atomic"
 )
 
@@ -21,15 +22,12 @@ func NewRoundRobin(servers []string) *RoundRobin {
 }
 
 func (rr *RoundRobin) NextBackend() (Backend, error) {
-	bLen := len(rr.backends)
-
-	if rr.counter == uint64(bLen) {
-		atomic.StoreUint64(&rr.counter, 0)
+	if len(rr.backends) == 0 {
+		return "", errors.New("No backends available")
 	}
 
-	backend := rr.backends[rr.counter]
-
-	atomic.AddUint64(&rr.counter, 1)
+	i := atomic.AddUint64(&rr.counter, 1)
+	backend := rr.backends[i%uint64(len(rr.backends))]
 
 	return backend, nil
 }
