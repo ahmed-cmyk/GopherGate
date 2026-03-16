@@ -26,7 +26,7 @@ func (rr *RoundRobin) NextBackend() (Backend, error) {
 		return "", errors.New("No backends available")
 	}
 
-	i := atomic.AddUint64(&rr.counter, 1)
+	i := atomic.AddUint64(&rr.counter, 1) - 1
 	backend := rr.backends[i%uint64(len(rr.backends))]
 
 	return backend, nil
