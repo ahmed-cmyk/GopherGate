@@ -96,18 +96,13 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server, err := matched.balancer.NextBackend()
+	host, err := matched.balancer.NextBackend()
 	if err != nil {
 		http.Error(w, "Server Error", 500)
 	}
 
-	url, err := url.Parse(string(server))
-	if err != nil {
-		http.Error(w, "Bad Request", 400)
-	}
-
-	log.Printf("Routing %s request to %s", r.URL.Path, url)
-	r.URL = url
+	log.Printf("Routing %s request to %s", r.URL.Path, host)
+	r.URL.Host = string(host)
 
 	matched.handler.ServeHTTP(w, r)
 }
