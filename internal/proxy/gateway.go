@@ -9,12 +9,14 @@ import (
 	"strings"
 
 	"github.com/ahmed-cmyk/GopherGate/internal/config"
+	loadbalancer "github.com/ahmed-cmyk/GopherGate/internal/loadBalancer"
 	"github.com/ahmed-cmyk/GopherGate/internal/middleware"
 )
 
 type routeEntry struct {
-	handler http.Handler
-	methods []string
+	balancer loadbalancer.Balancer
+	handler  http.Handler
+	methods  []string
 }
 
 type Gateway struct {
@@ -27,9 +29,9 @@ func New(cfg *config.Config) *Gateway {
 	}
 
 	for _, route := range cfg.Routes {
-		targetUrl, err := url.Parse(route.Target)
+		targetUrl, err := url.Parse(route.Targets[0])
 		if err != nil {
-			log.Fatalf("Invalid target URL %s: %v", route.Target, err)
+			log.Fatalf("Invalid target URL %s: %v", route.Targets[0], err)
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(targetUrl)
@@ -64,8 +66,9 @@ func New(cfg *config.Config) *Gateway {
 		finalHandler := applyMiddlewares(proxy, route.Middlewares)
 
 		gw.routes[route.Path] = routeEntry{
-			handler: finalHandler,
-			methods: route.Methods,
+			balancer: middleware.ResolveBalancer(route.Path, route.Balancer, route.Targets),
+			handler:  finalHandler,
+			methods:  route.Methods,
 		}
 	}
 	return gw
@@ -92,6 +95,19 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Supported", http.StatusMethodNotAllowed)
 		return
 	}
+
+	server, err := matched.balancer.NextBackend()
+	if err != nil {
+		http.Error(w, "Server Error", 500)
+	}
+
+	url, err := url.Parse(string(server))
+	if err != nil {
+		http.Error(w, "Bad Request", 400)
+	}
+
+	log.Printf("Routing %s request to %s", r.URL.Path, url)
+	r.URL = url
 
 	matched.handler.ServeHTTP(w, r)
 }

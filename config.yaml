@@ -5,7 +5,10 @@ server:
 
 routes:
   - path: /api/users
-    target: "http://user-service:8001"
+    targets:
+      - "http://user-service:8001"
+      - "http://user-service:8002"
+      - "http://user-service:8003"
     methods: ["GET", "POST"]
     headers:
       set:
@@ -16,6 +19,7 @@ routes:
         - X-Forwarded-For
         - Cookie
     strip-prefix: true
+    balancer: round_robin
     middlewares:
       - rate_limit
       - logging

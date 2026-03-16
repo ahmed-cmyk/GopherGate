@@ -22,10 +22,11 @@ type HeaderConfig struct {
 
 type Route struct {
 	Path        string       `yaml:"path"`
-	Target      string       `yaml:"target"`
+	Targets     []string     `yaml:"targets"`
 	StripPrefix bool         `yaml:"strip-prefix"`
 	Methods     []string     `yaml:"methods"`
 	Headers     HeaderConfig `yaml:"headers"`
+	Balancer    string       `yaml:"balancer"`
 	Middlewares []string     `yaml:"middlewares"`
 }
 
