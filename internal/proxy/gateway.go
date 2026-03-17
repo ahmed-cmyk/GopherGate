@@ -64,16 +64,19 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// If no route has been found return a 404 error
 	if !found {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
 
+	// Check if method is supported
 	if len(matched.methods) > 0 && !slices.Contains(matched.methods, r.Method) {
 		http.Error(w, "Method Not Supported", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Select next backend for the matched route, if nothing matches return 500 error
 	host, err := matched.balancer.NextBackend()
 	if err != nil {
 		http.Error(w, "Server Error", 500)
