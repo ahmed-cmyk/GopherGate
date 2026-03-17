@@ -80,8 +80,11 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Routing %s request to %s", r.URL.Path, host)
 	r.URL.Host = string(host)
+	r.URL.Scheme = "http"
+	r.Host = string(host)
+
+	log.Printf("Routing %s request to %s", r.URL.Path, host)
 
 	matched.handler.ServeHTTP(w, r)
 }
