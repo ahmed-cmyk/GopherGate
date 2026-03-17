@@ -31,37 +31,13 @@ func New(cfg *config.Config) *Gateway {
 	for _, route := range cfg.Routes {
 		targetUrl, err := url.Parse(route.Targets[0])
 		if err != nil {
-			log.Fatalf("Invalid target URL %s: %v", route.Targets[0], err)
+			log.Printf("Invalid target URL %s: %v", route.Targets[0], err)
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 
 		originalDirector := proxy.Director
-		proxy.Director = func(req *http.Request) {
-			originalDirector(req) // Sets host and scheme
-
-			// Remove unwanted headers
-			for _, h := range route.Headers.Remove {
-				req.Header.Del(h)
-			}
-
-			// Set new headers
-			for key, value := range route.Headers.Set {
-				req.Header.Set(key, value)
-			}
-
-			if route.StripPrefix {
-				// This logic is now "locked in" for this specific proxy
-				if after, ok := strings.CutPrefix(req.URL.Path, route.Path); ok {
-					// Force the path to be absolute
-					if after == "" || after[0] != '/' {
-						after = "/" + after
-					}
-
-					req.URL.Path = after
-				}
-			}
-		}
+		proxy.Director = ApplyDirector(&route, originalDirector)
 
 		finalHandler := applyMiddlewares(proxy, route.Middlewares)
 
@@ -99,6 +75,7 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host, err := matched.balancer.NextBackend()
 	if err != nil {
 		http.Error(w, "Server Error", 500)
+		return
 	}
 
 	log.Printf("Routing %s request to %s", r.URL.Path, host)
@@ -110,7 +87,6 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func applyMiddlewares(target http.Handler, names []string) http.Handler {
 	current := target
 
-	// Wrap from right to left so the first item in the YAML is the outermost layer
 	for _, name := range names {
 		if mwFunc, ok := middleware.Registry[name]; ok {
 			current = mwFunc(current)
