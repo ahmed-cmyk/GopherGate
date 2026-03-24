@@ -29,7 +29,7 @@ I am building this incrementally. Here is the current status of the gateway:
 
 * [x] **Load Balancing:** Round-robin distribution across multiple service instances.
 * [x] **Rate Limiting:** Protect backends using the Token Bucket algorithm.
-* [ ] **Health Checks:** Automatically removing unhealthy backends from the pool.
+* [x] **Health Checks:** Automatically removing unhealthy backends from the pool.
 
 ### Phase 3: Security & Ops
 
