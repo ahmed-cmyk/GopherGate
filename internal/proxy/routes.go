@@ -8,26 +8,26 @@ import (
 )
 
 type Routes struct {
-	route map[string][]Server
+	route map[string][]*Server
 	mu    sync.RWMutex
 }
 
 func InitRoutes(routes *[]config.Route) *Routes {
 	r := &Routes{
-		route: make(map[string][]Server),
+		route: make(map[string][]*Server),
 	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for _, route := range *routes {
-		var servers []Server
+		var servers []*Server
 
 		for _, target := range route.Targets {
-			servers = append(servers, Server{
-				URL:   target,
-				Alive: true,
-			})
+			// Create new server instance
+			server := NewServer(target)
+			// Add new "server" to "servers" array
+			servers = append(servers, server)
 		}
 
 		r.route[route.Path] = servers
@@ -48,14 +48,14 @@ func (r *Routes) GetPaths() []string {
 	return paths
 }
 
-func (r *Routes) GetTargets(path string) []health.Target {
+func (r *Routes) GetServersForPath(path string) []health.Target {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	servers := r.route[path]
 	targets := make([]health.Target, len(servers))
 	for i := range servers {
-		targets[i] = &servers[i]
+		targets[i] = servers[i]
 	}
 
 	return targets

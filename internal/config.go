@@ -34,6 +34,7 @@ func (c *Config) LoadData(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Errorf("Error loading config: %v", err)
+		return err
 	}
 
 	return yaml.Unmarshal(data, c)

@@ -11,9 +11,10 @@ func NewHealthChecker(routes RouteStore, interval time.Duration, timeout time.Du
 	pinger := NewPinger(timeout)
 
 	return &HealthChecker{
-		routes:   routes,
-		interval: interval,
-		pinger:   pinger,
+		routes:    routes,
+		interval:  interval,
+		pinger:    pinger,
+		callbacks: make([]StatusChangeCallback, 0),
 	}
 }
 
@@ -26,15 +27,23 @@ func (hc *HealthChecker) StartHealthChecker(ctx context.Context) {
 		case <-healthTicker.C:
 			paths := hc.routes.GetPaths()
 
-			// TODO: Check health of all servers
 			for _, path := range paths {
-				servers := hc.routes.GetTargets(path)
+				servers := hc.routes.GetServersForPath(path)
 				for _, server := range servers {
+					// Capture previous status before ping
+					prevStatus := server.GetStatus()
+
 					// Launch each ping in its own goroutine
-					go func(s Target) {
+					go func(s Target, wasHealthy bool) {
 						log.Debugf("Pinging: %s", s.GetURL())
 						hc.pinger.Ping(ctx, s)
-					}(server)
+
+						// Notify callbacks if status changed
+						isHealthy := s.GetStatus()
+						if isHealthy != wasHealthy {
+							hc.notifyStatusChange(s.GetURL(), isHealthy)
+						}
+					}(server, prevStatus)
 				}
 			}
 		case <-ctx.Done():

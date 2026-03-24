@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-type Target interface {
-	GetURL() string
-	SetStatus(alive bool)
-}
-
 type Pinger struct {
 	client *http.Client
 }

@@ -12,11 +12,25 @@ type Server struct {
 	URL      string
 	Attempts int
 	Alive    bool
-	mu       sync.Mutex
+	mu       sync.RWMutex
+}
+
+func NewServer(url string) *Server {
+	s := &Server{URL: url}
+	s.Alive = true // Explicitly set default
+	return s
 }
 
 func (s *Server) GetURL() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.URL
+}
+
+func (s *Server) GetStatus() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Alive
 }
 
 func (s *Server) SetStatus(alive bool) {

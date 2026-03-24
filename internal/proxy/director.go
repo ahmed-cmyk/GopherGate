@@ -7,7 +7,7 @@ import (
 	config "github.com/ahmed-cmyk/GopherGate/internal"
 )
 
-func ApplyDirector(route *config.Route, originalDirector func(*http.Request)) func(*http.Request) {
+func AddDirector(route *config.Route, originalDirector func(*http.Request)) func(*http.Request) {
 	return func(req *http.Request) {
 		originalDirector(req) // Sets host and scheme
 

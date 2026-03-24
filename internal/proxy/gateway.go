@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	config "github.com/ahmed-cmyk/GopherGate/internal"
+	"github.com/ahmed-cmyk/GopherGate/internal/health"
 	loadbalancer "github.com/ahmed-cmyk/GopherGate/internal/loadBalancer"
 	"github.com/ahmed-cmyk/GopherGate/internal/middleware"
 	"github.com/charmbracelet/log"
@@ -29,39 +30,43 @@ func NewGateway(cfg *config.Config, routeMap *Routes) *Gateway {
 	}
 
 	for _, route := range cfg.Routes {
-		targetUrl, err := url.Parse(route.Targets[0])
+		servers := routeMap.GetServersForPath(route.Path)
+
+		entry, err := gw.buildRouteEntry(&route, servers)
 		if err != nil {
-			log.Errorf("Invalid target URL %s: %v", route.Targets[0], err)
+			log.Errorf("Skipping route %s due to error: %v", route.Path, err)
+			continue
 		}
 
-		proxy := httputil.NewSingleHostReverseProxy(targetUrl)
-
-		originalDirector := proxy.Director
-		// Create a new copy of "route" scoped to this loop iteration
-		route := route
-		proxy.Director = ApplyDirector(&route, originalDirector)
-
-		finalHandler := applyMiddlewares(proxy, route.Middlewares)
-
-		var servers []string
-
-		for _, server := range routeMap.route[route.Path] {
-			servers = append(servers, server.URL)
-		}
-
-		balancerCfg := loadbalancer.BalancerConfig{
-			Path:     route.Path,
-			Balancer: route.Balancer,
-			Servers:  route.Targets,
-		}
-
-		gw.routes[route.Path] = routeEntry{
-			balancer: loadbalancer.ResolveBalancer(balancerCfg),
-			handler:  finalHandler,
-			methods:  route.Methods,
-		}
+		gw.routes[route.Path] = entry
 	}
 	return gw
+}
+
+func (gw *Gateway) buildRouteEntry(route *config.Route, servers []health.Target) (routeEntry, error) {
+	targetURL, err := url.Parse(route.Targets[0])
+	if err != nil {
+		return routeEntry{}, err
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	originalDirector := proxy.Director
+	proxy.Director = AddDirector(route, originalDirector)
+
+	finalHandler := middleware.AddMiddlewareChain(proxy, route.Middlewares)
+
+	balancer := loadbalancer.ResolveBalancer(loadbalancer.BalancerConfig{
+		Path:     route.Path,
+		Balancer: route.Balancer,
+		Servers:  servers,
+	})
+
+	return routeEntry{
+		balancer: balancer,
+		handler:  finalHandler,
+		methods:  route.Methods,
+	}, nil
 }
 
 func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +96,7 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Select next backend for the matched route, if nothing matches return 500 error
 	host, err := matched.balancer.NextBackend()
 	if err != nil {
-		http.Error(w, "Server Error", 500)
+		http.Error(w, "Server Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -104,16 +109,9 @@ func (gw *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	matched.handler.ServeHTTP(w, r)
 }
 
-func applyMiddlewares(target http.Handler, names []string) http.Handler {
-	current := target
-
-	for _, name := range names {
-		if mwFunc, ok := middleware.Registry[name]; ok {
-			current = mwFunc(current)
-		} else {
-			log.Errorf("Warning: Middleware %s not found", name)
-		}
+// UpdateBackendHealth updates the health status of a backend across all routes
+func (gw *Gateway) UpdateBackendHealth(backendURL string, healthy bool) {
+	for _, entry := range gw.routes {
+		entry.balancer.SetHealth(backendURL, healthy)
 	}
-
-	return current
 }
