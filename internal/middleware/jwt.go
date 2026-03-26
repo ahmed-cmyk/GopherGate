@@ -38,7 +38,7 @@ func JWTValidation(next http.Handler) http.Handler {
 		}
 
 		// 1. Parse and Validate the Token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			// 2. Validate the algorithm (Don't skip this! Important for security)
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

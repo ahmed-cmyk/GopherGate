@@ -43,6 +43,9 @@ func main() {
 	routes := proxy.InitRoutes(&cfg.Routes)
 	log.Debug("Completed routes setup")
 
+	// Register CORS
+	middleware.RegisterCORS(cfg.Allowlist)
+
 	// Register Rate Limiter instance
 	middleware.RegisterRateLimiter(time.Second, 50)
 

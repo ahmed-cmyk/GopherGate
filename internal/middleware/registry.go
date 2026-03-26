@@ -40,6 +40,18 @@ func (r *Registry) Register(name string, fn MiddlewareFunc) {
 // DefaultRegistry is the global registry instance
 var DefaultRegistry = NewRegistry()
 
+func RegisterCORS(allowlist []string) {
+	allowMap := make(map[string]struct{})
+
+	for _, entry := range allowlist {
+		allowMap[entry] = struct{}{}
+	}
+
+	corsMW := CORS(allowMap)
+
+	DefaultRegistry.Register("cors", corsMW)
+}
+
 // RegisterRateLimiter registers the rate limiter middleware with the default registry
 func RegisterRateLimiter(duration time.Duration, bucket int) {
 	// Initialize the stateful logic

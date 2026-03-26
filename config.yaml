@@ -3,6 +3,9 @@ service-name: "API Gateway"
 server:
   port: 8080
 
+allowlist:
+  - http://localhost:3000
+
 routes:
   - path: /api/users
     targets:
@@ -24,3 +27,4 @@ routes:
       - jwt_validation
       - rate_limit
       - logging
+      - cors
