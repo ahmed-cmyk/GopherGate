@@ -36,6 +36,9 @@ func main() {
 		log.Errorf("Error unmarshaling YAML: %v\n", err)
 	}
 
+	// Initialize zap logger
+	middleware.InitLogger()
+
 	// Set log level to debug so that we can see debug logs
 	log.SetLevel(log.DebugLevel)
 
