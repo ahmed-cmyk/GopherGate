@@ -38,6 +38,14 @@ I am building this incrementally. Here is the current status of the gateway:
 * [x] **Structured Logging:** Zap or Logrus integration for JSON logging.
 * [x] **Prometheus Metrics:** Tracking request latency and 5xx errors.
 
+### Phase 4: Continued Improvements
+
+* [ ] **Rate Limiting:** Implement a "Token Bucket" or "Leaky Bucket" algorithm to prevent DDoS and API abuse (using x/time/rate).
+* [ ] **Active/Passive Health Checks:** Moving beyond simple pings to observing real-time failures and automatically pulling bad backends from the rotation.
+* [ ] **Retries & Timeouts:** Implementing "Smart Retries" with exponential backoff so a single blip in a backend doesn't result in a 502 Bad Gateway for the user.
+* [ ] **Graceful Shutdown:** Ensuring the http.Server drains active connections before the process exits during a deployment.
+* [ ] **Hot Reloading:** Updating the allowMap and routes dynamically from the config file without restarting the entire binary (using fsnotify).
+
 ---
 
 ## 🚦 Getting Started
