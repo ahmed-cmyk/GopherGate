@@ -14,6 +14,8 @@ import (
 	"github.com/ahmed-cmyk/GopherGate/internal/proxy"
 	"github.com/charmbracelet/log"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 func main() {
@@ -75,7 +77,14 @@ func main() {
 
 	middleware.InitKey(os.Getenv("JWT_KEY"))
 
-	go proxy.StartServer(port, gateway)
+	// Setup prometheus metrics
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
+	go proxy.StartServer(port, gateway, reg)
 
 	log.Infof("Starting service: %s\n", cfg.ServiceName)
 	log.Infof("Listening on port %s\n", cfg.Server.Port)

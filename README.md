@@ -36,7 +36,7 @@ I am building this incrementally. Here is the current status of the gateway:
 * [x] **JWT Validation:** Centralized authentication at the edge.
 * [x] **CORS Middleware:** Global configuration for cross-origin requests.
 * [x] **Structured Logging:** Zap or Logrus integration for JSON logging.
-* [ ] **Prometheus Metrics:** Tracking request latency and 5xx errors.
+* [x] **Prometheus Metrics:** Tracking request latency and 5xx errors.
 
 ---
 

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {
@@ -54,12 +56,21 @@ func (s *Server) SetStatus(alive bool) {
 	}
 }
 
-func StartServer(port string, gateway http.Handler) {
+func StartServer(port string, gateway http.Handler, reg *prometheus.Registry) {
+	// Initialize multiplexer
+	mux := http.NewServeMux()
+
+	// Register prometheus metrics endpoint
+	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
+	// The "/" pattern in ServeMux acts as a "catch-all"
+	mux.Handle("/", gateway)
+
 	server := &http.Server{
 		Addr:         port,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
-		Handler:      gateway,
+		Handler:      mux,
 	}
 
 	err := server.ListenAndServe()
